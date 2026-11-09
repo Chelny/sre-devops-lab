@@ -1,5 +1,16 @@
 # sre-devops-lab
 
+![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![pnpm](https://img.shields.io/badge/pnpm-12.9.1-F69220?logo=pnpm&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?logo=githubactions&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
+![CI](https://github.com/Chelny/sre-devops-lab/actions/workflows/ci.yaml/badge.svg)
+
 A hands-on SRE/DevOps portfolio project: a Node.js + TypeScript API running on Docker, PostgreSQL, and Kubernetes, Terraform, and an observability stack.
 
 ## Goal
