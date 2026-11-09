@@ -1,0 +1,6 @@
+allowBuilds:
+  esbuild: true
+minimumReleaseAgeExclude:
+  - dotenv@18.0.10
+overrides:
+  minimatch: ^11.0.1
