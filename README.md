@@ -4,8 +4,10 @@
 ![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-multi--stage-2496ED?logo=docker&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-Minikube-326CE5?logo=kubernetes&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-v2.55-E6522C?logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-11.3-F46800?logo=grafana&logoColor=white)
 ![pnpm](https://img.shields.io/badge/pnpm-12.9.1-F69220?logo=pnpm&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?logo=githubactions&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
@@ -30,13 +32,14 @@ Practice the full SRE/DevOps toolchain end-to-end on a realistic, small applicat
 | Layer                   | Tool                                  |
 |-------------------------|---------------------------------------|
 | API                     | Node.js 22, TypeScript 6, Express 5   |
-| Database                | PostgreSQL 18 (Docker)                |
+| Database                | PostgreSQL 18                         |
 | Package manager         | pnpm 12.9.1 (via Corepack)            |
 | Container               | Docker, multi-stage Dockerfile        |
+| Orchestration (local)   | Docker Compose                        |
 | Orchestration (cluster) | Kubernetes on Minikube                |
 | CI                      | GitHub Actions                        |
-| IaC (planned)           | Terraform + LocalStack                |
-| Observability (planned) | Prometheus, Grafana                   |
+| IaC                     | Terraform + LocalStack                |
+| Observability           | Prometheus, Grafana                   |
 
 ## Project layout
 
@@ -49,9 +52,10 @@ Practice the full SRE/DevOps toolchain end-to-end on a realistic, small applicat
 │   └── overlays/local/ # Local environment overlay
 ├── terraform/          # IaC with LocalStack (S3, DynamoDB, Lambda)
 │   └── lambda/         # Lambda source code
-├── monitoring/         # Prometheus + Grafana (planned)
+├── monitoring/         # Reserved for future dashboards/alerts
+├── docs/
+│   └── postmortems/    # Incident reports
 ├── scripts/            # Automation scripts
-├── docs/               # Architecture, runbooks, postmortems
 └── .github/workflows/  # CI
 ```
 
@@ -62,7 +66,7 @@ Practice the full SRE/DevOps toolchain end-to-end on a realistic, small applicat
 - [x] **Step 3** — CI with GitHub Actions (lint, test, build)
 - [x] **Step 4** — Kubernetes local deploy (Minikube) with health checks and autoscaling
 - [x] **Step 5** — Terraform + LocalStack (S3, DynamoDB, Lambda) without AWS costs
-- [ ] **Step 6** — Prometheus + Grafana + incident simulations and postmortems
+- [x] **Step 6** — Prometheus + Grafana + incident simulations and postmortems
 
 ## Quick start
 
@@ -149,6 +153,23 @@ cat response.json
 lstk terraform destroy -auto-approve
 ```
 
+### Observability (Prometheus + Grafana)
+
+The API exposes Prometheus metrics at `/metrics` (`prom-client`).
+
+```bash
+# Deploy Prometheus + Grafana (alongside API/Postgres)
+kubectl apply -k k8s/overlays/local
+
+# Access Prometheus
+kubectl port-forward -n sre-lab svc/prometheus 9090:9090
+# http://localhost:9090
+
+# Access Grafana
+kubectl port-forward -n sre-lab svc/grafana 3000:3000
+# http://localhost:3000 — login admin/admin
+```
+
 ## Endpoints
 
 | Method | Path         | Purpose                     |
@@ -178,17 +199,14 @@ pnpm build
 ```
 
 ## Notes
-The PostgreSQL container is exposed on port 5433 (host) to avoid conflicts with a local PostgreSQL on 5432. Inside Docker and Kubernetes, the API connects to `postgres:5432`.
 
-`pnpm-workspace.yaml` is required in the Docker build context because pnpm 11+ reads `overrides` from it, not from `package.json`.
-
-The Kubernetes Secret in `k8s/base/secret.yaml` contains plaintext credentials for local lab use only. In a real project, use Sealed Secrets or External Secrets Operator.
-
-PostgreSQL runs with an `emptyDir` volume on Kubernetes, so data is not persisted across pod restarts. Production would use a `StatefulSet` with a `PersistentVolumeClaim`.
-
-Terraform state (`*.tfstate`) and `.terraform/` are **not committed**. `.terraform.lock.hcl` is committed for provider version reproducibility.
-
-`terraform/function.zip` is generated from `terraform/lambda/` and is not committed.
+- The PostgreSQL container is exposed on **port 5433** (host) to avoid conflicts with a local PostgreSQL on 5432. Inside Docker and Kubernetes, the API connects to `postgres:5432`.
+- `pnpm-workspace.yaml` is required in the Docker build context because pnpm 11+ reads `overrides` from it, not from `package.json`.
+- The Kubernetes Secret in `k8s/base/secret.yaml` contains plaintext credentials **for local lab use only**. In a real project, use Sealed Secrets or External Secrets Operator.
+- PostgreSQL runs with an `emptyDir` volume on Kubernetes, so **data is not persisted** across pod restarts. Production would use a `StatefulSet` with a `PersistentVolumeClaim`.
+- Terraform state (`*.tfstate`) and `.terraform/` are **not committed**. `.terraform.lock.hcl` is committed for provider version reproducibility.
+- `terraform/function.zip` is generated from `terraform/lambda/` and is not committed.
+- Observability stack: `prom-client` in the API, Prometheus scraping every 15s, Grafana provisioned datasource. Dashboard and alerts are not yet versioned as JSON.
 
 ## License
 [MIT](LICENSE)
