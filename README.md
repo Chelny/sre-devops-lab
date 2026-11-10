@@ -47,7 +47,8 @@ Practice the full SRE/DevOps toolchain end-to-end on a realistic, small applicat
 ├── k8s/                # Kubernetes manifests (base + overlays)
 │   ├── base/           # Common resources
 │   └── overlays/local/ # Local environment overlay
-├── terraform/          # IaC with LocalStack (planned)
+├── terraform/          # IaC with LocalStack (S3, DynamoDB, Lambda)
+│   └── lambda/         # Lambda source code
 ├── monitoring/         # Prometheus + Grafana (planned)
 ├── scripts/            # Automation scripts
 ├── docs/               # Architecture, runbooks, postmortems
@@ -60,7 +61,7 @@ Practice the full SRE/DevOps toolchain end-to-end on a realistic, small applicat
 - [x] **Step 2** — Full stack via Docker Compose (`docker compose up`)
 - [x] **Step 3** — CI with GitHub Actions (lint, test, build)
 - [x] **Step 4** — Kubernetes local deploy (Minikube) with health checks and autoscaling
-- [ ] **Step 5** — Terraform + LocalStack (IaC without AWS costs)
+- [x] **Step 5** — Terraform + LocalStack (S3, DynamoDB, Lambda) without AWS costs
 - [ ] **Step 6** — Prometheus + Grafana + incident simulations and postmortems
 
 ## Quick start
@@ -122,6 +123,32 @@ To rebuild after code changes, use the helper script:
 ./scripts/k8s-rebuild.sh
 ```
 
+### Provision AWS resources with Terraform (LocalStack)
+
+No AWS account or credit card required: [LocalStack](https://localstack.cloud) emulates AWS services locally.
+
+```bash
+# 1. Start LocalStack (first run opens a browser for free login)
+lstk start
+
+# 2. In another terminal, provision resources
+cd terraform
+cd lambda && zip -r ../function.zip . && cd ..
+lstk terraform init
+lstk terraform apply -auto-approve
+
+# 3. Verify
+aws --profile localstack s3 ls
+aws --profile localstack dynamodb list-tables
+aws --profile localstack lambda list-functions
+aws --profile localstack lambda invoke \
+  --function-name hello --payload '{}' response.json
+cat response.json
+
+# 4. Clean up
+lstk terraform destroy -auto-approve
+```
+
 ## Endpoints
 
 | Method | Path         | Purpose                     |
@@ -158,6 +185,10 @@ The PostgreSQL container is exposed on port 5433 (host) to avoid conflicts with 
 The Kubernetes Secret in `k8s/base/secret.yaml` contains plaintext credentials for local lab use only. In a real project, use Sealed Secrets or External Secrets Operator.
 
 PostgreSQL runs with an `emptyDir` volume on Kubernetes, so data is not persisted across pod restarts. Production would use a `StatefulSet` with a `PersistentVolumeClaim`.
+
+Terraform state (`*.tfstate`) and `.terraform/` are **not committed**. `.terraform.lock.hcl` is committed for provider version reproducibility.
+
+`terraform/function.zip` is generated from `terraform/lambda/` and is not committed.
 
 ## License
 [MIT](LICENSE)
